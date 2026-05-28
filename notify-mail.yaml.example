@@ -1,0 +1,20 @@
+smtp:
+  host: smtp.qq.com
+  port: 587
+  mode: starttls
+  username: your@qq.com
+  password: your_qq_mail_auth_code
+  from: your@qq.com
+  to: your@qq.com
+
+mail:
+  subject: "Codex 任务完成"
+  maxMessageLength: 800
+  includeEmptyReply: false
+
+dedup:
+  enabled: true
+  windowSeconds: 30
+
+log:
+  path: notify-mail.log

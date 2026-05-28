@@ -1,0 +1,20 @@
+{
+  "name": "codex-hook-notify",
+  "interface": {
+    "displayName": "Codex Hook Notify"
+  },
+  "plugins": [
+    {
+      "name": "codex-hook-notify",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex-hook-notify"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+# Local secrets and runtime state
+/notify-mail.yaml
+/notify-mail.log
+/notify-mail.state.json
+/.env
+/test-hook.json
+
+# Build outputs
+*.exe
+/bin/
+/dist/
+
+# Editor and OS noise
+/.idea/
+.DS_Store
+Thumbs.db

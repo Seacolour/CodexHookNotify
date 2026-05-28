@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:\\Users\\YOUR_NAME\\.codex\\hooks\\notify-mail.exe\" --config \"C:\\Users\\YOUR_NAME\\.codex\\hooks\\notify-mail.yaml\"",
+            "timeout": 20,
+            "statusMessage": "发送完成通知邮件"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+interface:
+  display_name: Codex Hook Notify
+  short_description: Install Codex task-complete email notifications.
+  brand_color: "#2563EB"
+  default_prompt: Install CodexHookNotify for me.
