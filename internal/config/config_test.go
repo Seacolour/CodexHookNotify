@@ -37,6 +37,18 @@ func TestLoadAttachmentDefaults(t *testing.T) {
 	if !cfg.Session.SkipUnindexedEnabled() {
 		t.Fatal("skipUnindexed should be enabled by default")
 	}
+	if !cfg.Update.EnabledDefault() {
+		t.Fatal("update checks should be enabled by default")
+	}
+	if cfg.Update.Repository != "Seacolour/CodexHookNotify" {
+		t.Fatalf("repository = %q", cfg.Update.Repository)
+	}
+	if cfg.Update.IntervalHours != 24 {
+		t.Fatalf("intervalHours = %d", cfg.Update.IntervalHours)
+	}
+	if cfg.Update.TimeoutSeconds != 5 {
+		t.Fatalf("timeoutSeconds = %d", cfg.Update.TimeoutSeconds)
+	}
 }
 
 func TestLoadRejectsInvalidAttachmentMode(t *testing.T) {

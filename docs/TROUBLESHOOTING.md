@@ -65,6 +65,22 @@ attachment:
 
 Use `mode: always` if every notification should include a Markdown file. Empty assistant replies are not attached.
 
+## Update notice is missing
+
+Check the installed binary version:
+
+```powershell
+& "$env:USERPROFILE\.codex\hooks\notify-mail.exe" --version
+```
+
+Update notices are disabled for development builds such as `dev` or `ci`. They are also cached by `update.intervalHours`, so a new check may not run on every email. To skip one specific release:
+
+```yaml
+update:
+  skippedVersions:
+    - v0.1.4
+```
+
 ## Session title is missing
 
 CodexHookNotify looks up titles in:

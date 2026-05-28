@@ -60,6 +60,7 @@ Use this guide when a user asks you to install, update, test, or troubleshoot Co
 - If no email arrives, check whether Codex Desktop was restarted and the hook was trusted.
 - If manual send works but Codex does not trigger it, inspect `~/.codex/hooks.json`.
 - If the user expects a Markdown attachment, check `attachment.enabled` and `attachment.mode`; the default only attaches when the preview is truncated.
+- If update notices are missing, run `notify-mail.exe --version`, inspect `update.enabled`, `update.intervalHours`, and `update.skippedVersions`.
 - If the email has no session title, check whether `~/.codex/session_index.jsonl` contains the hook `session_id`.
 - If a notification is skipped unexpectedly, check `session.skipUnindexed`; the default skips Stop events whose `session_id` is absent from `~/.codex/session_index.jsonl`.
 - If Chinese text appears as question marks only during manual tests, avoid PowerShell pipes and use `--test-json` or `--test-json-file`.

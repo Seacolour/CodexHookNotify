@@ -8,10 +8,10 @@
 - Run:
 
   ```powershell
-  go test ./...
-  .\build.ps1
-  .\scripts\install.ps1 -DryRun
-  ```
+go test ./...
+.\build.ps1 -Version v0.1.4
+.\scripts\install.ps1 -DryRun
+```
 
 - Confirm screenshots under `docs/images/` contain no private email address, project path, session id, or authorization code.
 - Create a GitHub release with a Windows executable artifact.

@@ -14,7 +14,10 @@ import (
 	"github.com/Seacolour/CodexHookNotify/internal/hook"
 	"github.com/Seacolour/CodexHookNotify/internal/mail"
 	"github.com/Seacolour/CodexHookNotify/internal/sessionindex"
+	"github.com/Seacolour/CodexHookNotify/internal/updatecheck"
 )
+
+var version = "dev"
 
 func main() {
 	os.Exit(run())
@@ -23,9 +26,15 @@ func main() {
 func run() int {
 	configPath := flag.String("config", "", "path to notify-mail.yaml")
 	dryRun := flag.Bool("dry-run", false, "build email body but do not send")
+	showVersion := flag.Bool("version", false, "print notify-mail version")
 	testJSON := flag.String("test-json", "", "hook JSON string for manual testing (UTF-8, avoids PowerShell pipe encoding)")
 	testJSONFile := flag.String("test-json-file", "", "path to UTF-8 JSON file for manual testing")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(version)
+		return 0
+	}
 
 	cfgPath := *configPath
 	if cfgPath == "" {
@@ -97,8 +106,17 @@ func run() int {
 		lastPreview = "(无文本回复)"
 	}
 	attachments, attachmentNote := buildAttachments(event, cfg, sessionTitle, lastFull, previewTruncated, time.Now())
+	updateNote := ""
+	if cfg.Update.EnabledDefault() {
+		notice, updateErr := updatecheck.Check(cfg.Update, resolveUpdateStatePath(cfgPath, cfg.Update.StatePath), version, time.Now())
+		if updateErr != nil {
+			logger.error("update check: %v", updateErr)
+		} else if notice.Available {
+			updateNote = fmt.Sprintf("工具更新：%s -> %s\r\n%s", version, notice.LatestVersion, notice.URL)
+		}
+	}
 
-	body := buildBody(event, cfg, sessionTitle, lastPreview, attachmentNote)
+	body := buildBody(event, cfg, sessionTitle, lastPreview, attachmentNote, updateNote)
 	if strings.TrimSpace(body) == "" && !cfg.Mail.IncludeEmptyReply {
 		logger.info("empty body, skip send")
 		return 0
@@ -151,7 +169,17 @@ func resolveLogPath(cfgPath, logPath string) string {
 	return filepath.Join(filepath.Dir(cfgPath), logPath)
 }
 
-func buildBody(event hook.Event, cfg config.Config, sessionTitle, lastPreview, attachmentNote string) string {
+func resolveUpdateStatePath(cfgPath, statePath string) string {
+	if strings.TrimSpace(statePath) == "" {
+		return filepath.Join(filepath.Dir(cfgPath), "notify-mail.update.json")
+	}
+	if filepath.IsAbs(statePath) {
+		return statePath
+	}
+	return filepath.Join(filepath.Dir(cfgPath), statePath)
+}
+
+func buildBody(event hook.Event, cfg config.Config, sessionTitle, lastPreview, attachmentNote, updateNote string) string {
 	sessionTitle = truncateText(strings.TrimSpace(sessionTitle), cfg.Session.MaxTitleLength)
 
 	lines := []string{
@@ -172,6 +200,9 @@ func buildBody(event hook.Event, cfg config.Config, sessionTitle, lastPreview, a
 	}
 	if attachmentNote != "" {
 		lines = append(lines, fmt.Sprintf("完整回复：%s", attachmentNote))
+	}
+	if updateNote != "" {
+		lines = append(lines, updateNote)
 	}
 	lines = append(lines, "", "最后回复：", lastPreview)
 	return strings.Join(lines, "\r\n")

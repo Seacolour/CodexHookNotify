@@ -14,6 +14,7 @@ type Config struct {
 	Mail       MailConfig       `yaml:"mail"`
 	Session    SessionConfig    `yaml:"session"`
 	Attachment AttachmentConfig `yaml:"attachment"`
+	Update     UpdateConfig     `yaml:"update"`
 	Dedup      DedupConfig      `yaml:"dedup"`
 	Log        LogConfig        `yaml:"log"`
 }
@@ -46,6 +47,16 @@ type AttachmentConfig struct {
 	Mode           string `yaml:"mode"`
 	FilenamePrefix string `yaml:"filenamePrefix"`
 	MaxBytes       int    `yaml:"maxBytes"`
+}
+
+type UpdateConfig struct {
+	Enabled           *bool    `yaml:"enabled"`
+	Repository        string   `yaml:"repository"`
+	IntervalHours     int      `yaml:"intervalHours"`
+	IncludePrerelease bool     `yaml:"includePrerelease"`
+	SkippedVersions   []string `yaml:"skippedVersions"`
+	StatePath         string   `yaml:"statePath"`
+	TimeoutSeconds    int      `yaml:"timeoutSeconds"`
 }
 
 type DedupConfig struct {
@@ -111,6 +122,15 @@ func applyDefaults(cfg *Config) {
 	if cfg.Attachment.MaxBytes == 0 {
 		cfg.Attachment.MaxBytes = 2 * 1024 * 1024
 	}
+	if cfg.Update.Repository == "" {
+		cfg.Update.Repository = "Seacolour/CodexHookNotify"
+	}
+	if cfg.Update.IntervalHours == 0 {
+		cfg.Update.IntervalHours = 24
+	}
+	if cfg.Update.TimeoutSeconds == 0 {
+		cfg.Update.TimeoutSeconds = 5
+	}
 	if cfg.Dedup.WindowSeconds == 0 {
 		cfg.Dedup.WindowSeconds = 30
 	}
@@ -141,6 +161,12 @@ func (c Config) validate() error {
 	if c.Attachment.MaxBytes < 0 {
 		return fmt.Errorf("attachment.maxBytes must be >= 0")
 	}
+	if c.Update.IntervalHours < 0 {
+		return fmt.Errorf("update.intervalHours must be >= 0")
+	}
+	if c.Update.TimeoutSeconds < 0 {
+		return fmt.Errorf("update.timeoutSeconds must be >= 0")
+	}
 	return nil
 }
 
@@ -168,4 +194,8 @@ func (a AttachmentConfig) ShouldAttach(wasTruncated bool) bool {
 	default:
 		return wasTruncated
 	}
+}
+
+func (u UpdateConfig) EnabledDefault() bool {
+	return u.Enabled == nil || *u.Enabled
 }

@@ -24,6 +24,15 @@ attachment:
   filenamePrefix: codex-reply
   maxBytes: 2097152
 
+update:
+  enabled: true
+  repository: Seacolour/CodexHookNotify
+  intervalHours: 24
+  includePrerelease: false
+  skippedVersions: []
+  statePath: ""
+  timeoutSeconds: 5
+
 dedup:
   enabled: true
   windowSeconds: 30

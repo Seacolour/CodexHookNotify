@@ -2,6 +2,7 @@
 /notify-mail.yaml
 /notify-mail.log
 /notify-mail.state.json
+/notify-mail.update.json
 /.env
 /test-hook.json
 

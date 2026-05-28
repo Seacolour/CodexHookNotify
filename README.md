@@ -73,6 +73,12 @@ This builds:
 
 ## Manual Test
 
+Print the installed version:
+
+```powershell
+& "$env:USERPROFILE\.codex\hooks\notify-mail.exe" --version
+```
+
 Use `--test-json` or `--test-json-file` instead of piping JSON through PowerShell. This keeps Chinese text intact on Chinese Windows systems.
 
 ```powershell
@@ -135,6 +141,31 @@ Modes:
 - `never`: disable Markdown attachments.
 
 The attachment uses `text/markdown` and keeps the original assistant Markdown. `maxBytes` prevents unusually large replies from creating oversized emails; if the generated attachment exceeds the limit, the attachment is truncated with a note.
+
+## Update Notices
+
+CodexHookNotify can append a lightweight update notice to task-complete emails when a newer GitHub release is available:
+
+```yaml
+update:
+  enabled: true
+  repository: Seacolour/CodexHookNotify
+  intervalHours: 24
+  includePrerelease: false
+  skippedVersions: []
+  statePath: ""
+  timeoutSeconds: 5
+```
+
+The check is best-effort and never blocks delivery. By default it reads/writes `notify-mail.update.json` next to your YAML config and checks GitHub at most once every 24 hours. If a user wants to skip a specific version:
+
+```yaml
+update:
+  skippedVersions:
+    - v0.1.4
+```
+
+Skipped versions are not mentioned again unless a newer unskipped release appears.
 
 ## AI-Assisted Install
 

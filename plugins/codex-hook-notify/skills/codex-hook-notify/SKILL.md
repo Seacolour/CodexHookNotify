@@ -52,6 +52,8 @@ If notifications are skipped unexpectedly, check `session.skipUnindexed`; the de
 
 If Markdown attachments are missing, check `attachment.enabled` and `attachment.mode`; the default only attaches when the email preview is truncated.
 
+If update notices are missing, run `notify-mail.exe --version`, then inspect `update.enabled`, `update.intervalHours`, and `update.skippedVersions`.
+
 Send a real test email only if the user explicitly asks:
 
 ```powershell
