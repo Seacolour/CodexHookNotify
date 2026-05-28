@@ -12,6 +12,7 @@ import (
 	"github.com/Seacolour/CodexHookNotify/internal/dedup"
 	"github.com/Seacolour/CodexHookNotify/internal/hook"
 	"github.com/Seacolour/CodexHookNotify/internal/mail"
+	"github.com/Seacolour/CodexHookNotify/internal/sessionindex"
 )
 
 func main() {
@@ -70,7 +71,15 @@ func run() int {
 		}
 	}
 
-	body := buildBody(event, cfg)
+	sessionTitle := ""
+	if cfg.Session.TitleLookupEnabled() && event.SessionID != "" {
+		sessionTitle, err = sessionindex.LookupTitle(cfg.Session.IndexPath, event.SessionID)
+		if err != nil {
+			logger.error("session title lookup: %v", err)
+		}
+	}
+
+	body := buildBody(event, cfg, sessionTitle)
 	if strings.TrimSpace(body) == "" && !cfg.Mail.IncludeEmptyReply {
 		logger.info("empty body, skip send")
 		return 0
@@ -120,11 +129,12 @@ func resolveLogPath(cfgPath, logPath string) string {
 	return filepath.Join(filepath.Dir(cfgPath), logPath)
 }
 
-func buildBody(event hook.Event, cfg config.Config) string {
+func buildBody(event hook.Event, cfg config.Config, sessionTitle string) string {
 	last := event.TruncateLast(cfg.Mail.MaxMessageLength)
 	if last == "" && !cfg.Mail.IncludeEmptyReply {
 		last = "(无文本回复)"
 	}
+	sessionTitle = truncateText(strings.TrimSpace(sessionTitle), cfg.Session.MaxTitleLength)
 
 	lines := []string{
 		"Codex 任务已完成。",
@@ -132,6 +142,9 @@ func buildBody(event hook.Event, cfg config.Config) string {
 		fmt.Sprintf("事件：%s", fallback(event.HookEventName, "Stop")),
 		fmt.Sprintf("目录：%s", event.CWD),
 		fmt.Sprintf("模型：%s", event.Model),
+	}
+	if sessionTitle != "" {
+		lines = append(lines, fmt.Sprintf("会话标题：%s", sessionTitle))
 	}
 	if event.SessionID != "" {
 		lines = append(lines, fmt.Sprintf("会话：%s", event.SessionID))
@@ -141,6 +154,17 @@ func buildBody(event hook.Event, cfg config.Config) string {
 	}
 	lines = append(lines, "", "最后回复：", last)
 	return strings.Join(lines, "\r\n")
+}
+
+func truncateText(value string, max int) string {
+	if max <= 0 {
+		return value
+	}
+	runes := []rune(value)
+	if len(runes) <= max {
+		return value
+	}
+	return string(runes[:max]) + "..."
 }
 
 func fallback(value, def string) string {

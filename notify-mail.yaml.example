@@ -12,6 +12,11 @@ mail:
   maxMessageLength: 800
   includeEmptyReply: false
 
+session:
+  titleLookup: true
+  indexPath: ""
+  maxTitleLength: 80
+
 dedup:
   enabled: true
   windowSeconds: 30

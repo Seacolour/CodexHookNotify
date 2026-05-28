@@ -52,3 +52,18 @@ dedup:
 ```
 
 Increase or disable it in `notify-mail.yaml` if needed.
+
+## Session title is missing
+
+CodexHookNotify looks up titles in:
+
+```text
+%USERPROFILE%\.codex\session_index.jsonl
+```
+
+The lookup is best-effort. If the hook `session_id` is not present in that file, the email falls back to the raw session id. You can also disable the lookup:
+
+```yaml
+session:
+  titleLookup: false
+```

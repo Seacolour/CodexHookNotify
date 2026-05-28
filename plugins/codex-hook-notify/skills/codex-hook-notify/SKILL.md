@@ -46,6 +46,8 @@ Run a dry-run parse test:
 .\scripts\test-mail.ps1 -DryRun
 ```
 
+If session titles are missing, check whether `~/.codex/session_index.jsonl` contains the hook `session_id`.
+
 Send a real test email only if the user explicitly asks:
 
 ```powershell

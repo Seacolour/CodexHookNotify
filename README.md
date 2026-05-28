@@ -15,6 +15,7 @@ CodexHookNotify is a tiny Go executable that reads Codex hook JSON from stdin, f
 - Single Windows executable: no Python, Node.js, or background daemon required at runtime.
 - SMTP support for QQ Mail and other providers that support STARTTLS or implicit TLS.
 - Chinese-friendly email subject/body encoding.
+- Optional session-title lookup from Codex Desktop's local `session_index.jsonl`.
 - Manual UTF-8 test modes that avoid PowerShell pipe encoding issues.
 - Deduplication window to avoid repeated emails from rapid hook retries.
 - Local log file for troubleshooting.
@@ -91,6 +92,25 @@ Read logs with UTF-8:
 ```powershell
 Get-Content "$env:USERPROFILE\.codex\hooks\notify-mail.log" -Tail 20 -Encoding UTF8
 ```
+
+## Session Titles
+
+Codex Desktop keeps a local session title index at:
+
+```text
+%USERPROFILE%\.codex\session_index.jsonl
+```
+
+CodexHookNotify maps the hook `session_id` to the local `thread_name` and includes it in the email body:
+
+```yaml
+session:
+  titleLookup: true
+  indexPath: ""
+  maxTitleLength: 80
+```
+
+Leave `indexPath` empty to use the default Codex Desktop path. If the file is missing or no title matches the current session id, the email still sends normally with the raw session id.
 
 ## AI-Assisted Install
 

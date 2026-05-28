@@ -3,15 +3,17 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	SMTP SMTPConfig `yaml:"smtp"`
-	Mail MailConfig `yaml:"mail"`
-	Dedup DedupConfig `yaml:"dedup"`
-	Log LogConfig `yaml:"log"`
+	SMTP    SMTPConfig    `yaml:"smtp"`
+	Mail    MailConfig    `yaml:"mail"`
+	Session SessionConfig `yaml:"session"`
+	Dedup   DedupConfig   `yaml:"dedup"`
+	Log     LogConfig     `yaml:"log"`
 }
 
 type SMTPConfig struct {
@@ -25,9 +27,15 @@ type SMTPConfig struct {
 }
 
 type MailConfig struct {
-	Subject            string `yaml:"subject"`
-	MaxMessageLength   int    `yaml:"maxMessageLength"`
-	IncludeEmptyReply  bool   `yaml:"includeEmptyReply"`
+	Subject           string `yaml:"subject"`
+	MaxMessageLength  int    `yaml:"maxMessageLength"`
+	IncludeEmptyReply bool   `yaml:"includeEmptyReply"`
+}
+
+type SessionConfig struct {
+	TitleLookup    *bool  `yaml:"titleLookup"`
+	IndexPath      string `yaml:"indexPath"`
+	MaxTitleLength int    `yaml:"maxTitleLength"`
 }
 
 type DedupConfig struct {
@@ -75,6 +83,14 @@ func applyDefaults(cfg *Config) {
 	if cfg.Mail.MaxMessageLength == 0 {
 		cfg.Mail.MaxMessageLength = 800
 	}
+	if cfg.Session.IndexPath == "" {
+		if home, err := os.UserHomeDir(); err == nil {
+			cfg.Session.IndexPath = filepath.Join(home, ".codex", "session_index.jsonl")
+		}
+	}
+	if cfg.Session.MaxTitleLength == 0 {
+		cfg.Session.MaxTitleLength = 80
+	}
 	if cfg.Dedup.WindowSeconds == 0 {
 		cfg.Dedup.WindowSeconds = 30
 	}
@@ -98,4 +114,8 @@ func (c Config) validate() error {
 		return fmt.Errorf("smtp.mode must be starttls or tls, got %q", mode)
 	}
 	return nil
+}
+
+func (s SessionConfig) TitleLookupEnabled() bool {
+	return s.TitleLookup == nil || *s.TitleLookup
 }
