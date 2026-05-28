@@ -48,6 +48,8 @@ Run a dry-run parse test:
 
 If session titles are missing, check whether `~/.codex/session_index.jsonl` contains the hook `session_id`.
 
+If notifications are skipped unexpectedly, check `session.skipUnindexed`; the default skips Stop events whose `session_id` is absent from `~/.codex/session_index.jsonl`.
+
 If Markdown attachments are missing, check `attachment.enabled` and `attachment.mode`; the default only attaches when the email preview is truncated.
 
 Send a real test email only if the user explicitly asks:

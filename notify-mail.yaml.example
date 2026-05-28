@@ -16,6 +16,7 @@ session:
   titleLookup: true
   indexPath: ""
   maxTitleLength: 80
+  skipUnindexed: true
 
 attachment:
   enabled: true

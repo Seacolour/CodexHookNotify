@@ -79,3 +79,12 @@ The lookup is best-effort. If the hook `session_id` is not present in that file,
 session:
   titleLookup: false
 ```
+
+## Expected notification was skipped
+
+By default, CodexHookNotify skips sessions that are not listed in Codex Desktop's local `session_index.jsonl`. This filters internal context-summary or memory-maintenance turns. Disable it if you want every Stop hook event:
+
+```yaml
+session:
+  skipUnindexed: false
+```

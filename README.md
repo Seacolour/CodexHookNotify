@@ -109,9 +109,12 @@ session:
   titleLookup: true
   indexPath: ""
   maxTitleLength: 80
+  skipUnindexed: true
 ```
 
-Leave `indexPath` empty to use the default Codex Desktop path. If the file is missing or no title matches the current session id, the email still sends normally with the raw session id.
+Leave `indexPath` empty to use the default Codex Desktop path. If the file is missing, the email still sends normally with the raw session id.
+
+`skipUnindexed` filters Codex internal housekeeping turns. When the session index file exists but the hook `session_id` is not present in it, CodexHookNotify treats the event as an internal/special session and skips the email. If you want every Stop hook event, set `skipUnindexed: false`.
 
 ## Markdown Attachments
 

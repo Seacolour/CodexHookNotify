@@ -38,6 +38,7 @@ type SessionConfig struct {
 	TitleLookup    *bool  `yaml:"titleLookup"`
 	IndexPath      string `yaml:"indexPath"`
 	MaxTitleLength int    `yaml:"maxTitleLength"`
+	SkipUnindexed  *bool  `yaml:"skipUnindexed"`
 }
 
 type AttachmentConfig struct {
@@ -145,6 +146,10 @@ func (c Config) validate() error {
 
 func (s SessionConfig) TitleLookupEnabled() bool {
 	return s.TitleLookup == nil || *s.TitleLookup
+}
+
+func (s SessionConfig) SkipUnindexedEnabled() bool {
+	return s.SkipUnindexed == nil || *s.SkipUnindexed
 }
 
 func (a AttachmentConfig) EnabledDefault() bool {

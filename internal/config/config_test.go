@@ -34,6 +34,9 @@ func TestLoadAttachmentDefaults(t *testing.T) {
 	if cfg.Attachment.MaxBytes != 2*1024*1024 {
 		t.Fatalf("maxBytes = %d", cfg.Attachment.MaxBytes)
 	}
+	if !cfg.Session.SkipUnindexedEnabled() {
+		t.Fatal("skipUnindexed should be enabled by default")
+	}
 }
 
 func TestLoadRejectsInvalidAttachmentMode(t *testing.T) {

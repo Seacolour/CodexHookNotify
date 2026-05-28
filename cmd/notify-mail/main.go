@@ -73,10 +73,21 @@ func run() int {
 	}
 
 	sessionTitle := ""
-	if cfg.Session.TitleLookupEnabled() && event.SessionID != "" {
-		sessionTitle, err = sessionindex.LookupTitle(cfg.Session.IndexPath, event.SessionID)
+	if (cfg.Session.TitleLookupEnabled() || cfg.Session.SkipUnindexedEnabled()) && event.SessionID != "" {
+		sessionResult, err := sessionindex.Lookup(cfg.Session.IndexPath, event.SessionID)
 		if err != nil {
 			logger.error("session title lookup: %v", err)
+		} else {
+			if cfg.Session.SkipUnindexedEnabled() && sessionResult.IndexExists && !sessionResult.Found {
+				logger.info("skipped unindexed session id=%s index=%s", event.SessionID, cfg.Session.IndexPath)
+				if *dryRun {
+					fmt.Printf("skipped: session %s was not found in %s\n", event.SessionID, cfg.Session.IndexPath)
+				}
+				return 0
+			}
+			if cfg.Session.TitleLookupEnabled() && sessionResult.Found {
+				sessionTitle = sessionResult.Title
+			}
 		}
 	}
 

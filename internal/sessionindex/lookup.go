@@ -14,22 +14,28 @@ type entry struct {
 	ThreadName string `json:"thread_name"`
 }
 
-func LookupTitle(path, sessionID string) (string, error) {
+type Result struct {
+	IndexExists bool
+	Found       bool
+	Title       string
+}
+
+func Lookup(path, sessionID string) (Result, error) {
 	sessionID = strings.TrimSpace(sessionID)
 	if sessionID == "" || strings.TrimSpace(path) == "" {
-		return "", nil
+		return Result{}, nil
 	}
 
 	file, err := os.Open(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return "", nil
+			return Result{}, nil
 		}
-		return "", fmt.Errorf("open session index: %w", err)
+		return Result{}, fmt.Errorf("open session index: %w", err)
 	}
 	defer file.Close()
 
-	var title string
+	result := Result{IndexExists: true}
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
 	for scanner.Scan() {
@@ -42,11 +48,20 @@ func LookupTitle(path, sessionID string) (string, error) {
 			continue
 		}
 		if item.ID == sessionID {
-			title = strings.TrimSpace(item.ThreadName)
+			result.Found = true
+			result.Title = strings.TrimSpace(item.ThreadName)
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("read session index: %w", err)
+		return Result{}, fmt.Errorf("read session index: %w", err)
 	}
-	return title, nil
+	return result, nil
+}
+
+func LookupTitle(path, sessionID string) (string, error) {
+	result, err := Lookup(path, sessionID)
+	if err != nil {
+		return "", err
+	}
+	return result.Title, nil
 }
