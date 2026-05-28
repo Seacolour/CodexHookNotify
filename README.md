@@ -4,7 +4,10 @@ Windows-first email notifications for Codex Desktop `Stop` hooks.
 
 CodexHookNotify is a tiny Go executable that reads Codex hook JSON from stdin, formats the final assistant reply, and sends it to your mailbox through SMTP. It is designed for people who let Codex work in the background and want a phone notification when a turn finishes.
 
-![Mail detail preview](docs/images/mail-detail-preview.jpg)
+<p align="center">
+  <img src="docs/images/mail-list-preview.jpg" alt="Mail list preview" width="320">
+  <img src="docs/images/mail-detail-preview.jpg" alt="Mail detail preview" width="320">
+</p>
 
 ## Features
 
