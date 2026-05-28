@@ -53,6 +53,18 @@ dedup:
 
 Increase or disable it in `notify-mail.yaml` if needed.
 
+## Markdown attachment is missing
+
+By default, Markdown attachments are only added when the email preview is truncated:
+
+```yaml
+attachment:
+  enabled: true
+  mode: when_truncated
+```
+
+Use `mode: always` if every notification should include a Markdown file. Empty assistant replies are not attached.
+
 ## Session title is missing
 
 CodexHookNotify looks up titles in:

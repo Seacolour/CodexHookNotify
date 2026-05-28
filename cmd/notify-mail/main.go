@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -79,19 +80,29 @@ func run() int {
 		}
 	}
 
-	body := buildBody(event, cfg, sessionTitle)
+	lastFull := strings.TrimSpace(event.LastAssistantMessage)
+	lastPreview, previewTruncated := truncateTextWithState(lastFull, cfg.Mail.MaxMessageLength)
+	if lastPreview == "" && !cfg.Mail.IncludeEmptyReply {
+		lastPreview = "(无文本回复)"
+	}
+	attachments, attachmentNote := buildAttachments(event, cfg, sessionTitle, lastFull, previewTruncated, time.Now())
+
+	body := buildBody(event, cfg, sessionTitle, lastPreview, attachmentNote)
 	if strings.TrimSpace(body) == "" && !cfg.Mail.IncludeEmptyReply {
 		logger.info("empty body, skip send")
 		return 0
 	}
 
 	if *dryRun {
-		logger.info("dry-run subject=%q body_len=%d", cfg.Mail.Subject, len(body))
+		logger.info("dry-run subject=%q body_len=%d attachments=%d", cfg.Mail.Subject, len(body), len(attachments))
 		fmt.Println(body)
+		for _, attachment := range attachments {
+			fmt.Printf("\n[attachment] %s (%d bytes)\n", attachment.Filename, len(attachment.Content))
+		}
 		return 0
 	}
 
-	if err := mail.Send(cfg, cfg.Mail.Subject, body); err != nil {
+	if err := mail.Send(cfg, cfg.Mail.Subject, body, attachments...); err != nil {
 		logger.error("send mail: %v", err)
 		return 0
 	}
@@ -129,11 +140,7 @@ func resolveLogPath(cfgPath, logPath string) string {
 	return filepath.Join(filepath.Dir(cfgPath), logPath)
 }
 
-func buildBody(event hook.Event, cfg config.Config, sessionTitle string) string {
-	last := event.TruncateLast(cfg.Mail.MaxMessageLength)
-	if last == "" && !cfg.Mail.IncludeEmptyReply {
-		last = "(无文本回复)"
-	}
+func buildBody(event hook.Event, cfg config.Config, sessionTitle, lastPreview, attachmentNote string) string {
 	sessionTitle = truncateText(strings.TrimSpace(sessionTitle), cfg.Session.MaxTitleLength)
 
 	lines := []string{
@@ -152,19 +159,140 @@ func buildBody(event hook.Event, cfg config.Config, sessionTitle string) string 
 	if event.TurnID != "" {
 		lines = append(lines, fmt.Sprintf("轮次：%s", event.TurnID))
 	}
-	lines = append(lines, "", "最后回复：", last)
+	if attachmentNote != "" {
+		lines = append(lines, fmt.Sprintf("完整回复：%s", attachmentNote))
+	}
+	lines = append(lines, "", "最后回复：", lastPreview)
 	return strings.Join(lines, "\r\n")
 }
 
 func truncateText(value string, max int) string {
+	truncated, _ := truncateTextWithState(value, max)
+	return truncated
+}
+
+func truncateTextWithState(value string, max int) (string, bool) {
 	if max <= 0 {
-		return value
+		return value, false
 	}
 	runes := []rune(value)
 	if len(runes) <= max {
-		return value
+		return value, false
 	}
-	return string(runes[:max]) + "..."
+	return string(runes[:max]) + "...", true
+}
+
+func buildAttachments(event hook.Event, cfg config.Config, sessionTitle, lastFull string, previewTruncated bool, now time.Time) ([]mail.Attachment, string) {
+	if strings.TrimSpace(lastFull) == "" || !cfg.Attachment.ShouldAttach(previewTruncated) {
+		return nil, ""
+	}
+
+	filename := markdownAttachmentFilename(cfg.Attachment.FilenamePrefix, event, now)
+	content := buildMarkdownAttachment(event, sessionTitle, lastFull)
+	content, contentTruncated := limitUTF8Bytes(content, cfg.Attachment.MaxBytes)
+
+	note := fmt.Sprintf("已附加 Markdown 文件 %s", filename)
+	if contentTruncated {
+		note += "（超过附件大小上限，内容已截断）"
+	}
+
+	return []mail.Attachment{
+		{
+			Filename:    filename,
+			ContentType: "text/markdown",
+			Content:     []byte(content),
+		},
+	}, note
+}
+
+func buildMarkdownAttachment(event hook.Event, sessionTitle, lastFull string) string {
+	lines := []string{
+		"# Codex 任务完成",
+		"",
+		"## Metadata",
+		"",
+		fmt.Sprintf("- 事件：%s", fallback(event.HookEventName, "Stop")),
+		fmt.Sprintf("- 目录：`%s`", event.CWD),
+		fmt.Sprintf("- 模型：%s", event.Model),
+	}
+	if strings.TrimSpace(sessionTitle) != "" {
+		lines = append(lines, fmt.Sprintf("- 会话标题：%s", strings.TrimSpace(sessionTitle)))
+	}
+	if event.SessionID != "" {
+		lines = append(lines, fmt.Sprintf("- 会话：`%s`", event.SessionID))
+	}
+	if event.TurnID != "" {
+		lines = append(lines, fmt.Sprintf("- 轮次：`%s`", event.TurnID))
+	}
+	lines = append(lines, "", "## 最后回复", "", lastFull)
+	return strings.Join(lines, "\n")
+}
+
+func markdownAttachmentFilename(prefix string, event hook.Event, now time.Time) string {
+	prefix = sanitizeFilenamePart(prefix)
+	if prefix == "" {
+		prefix = "codex-reply"
+	}
+	parts := []string{prefix, now.Format("20060102-150405")}
+	if shortID := shortSessionID(event.SessionID); shortID != "" {
+		parts = append(parts, shortID)
+	}
+	return strings.Join(parts, "-") + ".md"
+}
+
+func shortSessionID(sessionID string) string {
+	sessionID = strings.TrimSpace(sessionID)
+	if sessionID == "" {
+		return ""
+	}
+	if idx := strings.Index(sessionID, "-"); idx > 0 {
+		return sessionID[:idx]
+	}
+	if len(sessionID) > 8 {
+		return sessionID[:8]
+	}
+	return sessionID
+}
+
+func sanitizeFilenamePart(value string) string {
+	value = strings.TrimSpace(value)
+	var out strings.Builder
+	lastDash := false
+	for _, r := range value {
+		allowed := r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' || r == '-' || r == '.'
+		if allowed {
+			out.WriteRune(r)
+			lastDash = false
+			continue
+		}
+		if !lastDash {
+			out.WriteRune('-')
+			lastDash = true
+		}
+	}
+	return strings.Trim(out.String(), "-.")
+}
+
+func limitUTF8Bytes(value string, maxBytes int) (string, bool) {
+	if maxBytes <= 0 || len([]byte(value)) <= maxBytes {
+		return value, false
+	}
+	suffix := "\n\n---\n\n_附件内容超过配置的 maxBytes=" + strconv.Itoa(maxBytes) + "，已截断。请在 Codex Desktop 中查看完整回复。_\n"
+	limit := maxBytes - len([]byte(suffix))
+	if limit <= 0 {
+		limit = maxBytes
+		suffix = ""
+	}
+	var out strings.Builder
+	for _, r := range value {
+		next := string(r)
+		if out.Len()+len([]byte(next)) > limit {
+			break
+		}
+		out.WriteString(next)
+	}
+	out.WriteString(suffix)
+	return out.String(), true
 }
 
 func fallback(value, def string) string {

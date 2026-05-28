@@ -16,6 +16,7 @@ CodexHookNotify is a tiny Go executable that reads Codex hook JSON from stdin, f
 - SMTP support for QQ Mail and other providers that support STARTTLS or implicit TLS.
 - Chinese-friendly email subject/body encoding.
 - Optional session-title lookup from Codex Desktop's local `session_index.jsonl`.
+- Optional Markdown attachment with the full assistant reply when the email preview is truncated.
 - Manual UTF-8 test modes that avoid PowerShell pipe encoding issues.
 - Deduplication window to avoid repeated emails from rapid hook retries.
 - Local log file for troubleshooting.
@@ -111,6 +112,26 @@ session:
 ```
 
 Leave `indexPath` empty to use the default Codex Desktop path. If the file is missing or no title matches the current session id, the email still sends normally with the raw session id.
+
+## Markdown Attachments
+
+CodexHookNotify keeps the email body short for quick mobile reading. When the assistant reply is truncated by `mail.maxMessageLength`, it can attach the full reply as Markdown:
+
+```yaml
+attachment:
+  enabled: true
+  mode: when_truncated
+  filenamePrefix: codex-reply
+  maxBytes: 2097152
+```
+
+Modes:
+
+- `when_truncated`: attach Markdown only when the email preview is truncated.
+- `always`: attach Markdown for every non-empty assistant reply.
+- `never`: disable Markdown attachments.
+
+The attachment uses `text/markdown` and keeps the original assistant Markdown. `maxBytes` prevents unusually large replies from creating oversized emails; if the generated attachment exceeds the limit, the attachment is truncated with a note.
 
 ## AI-Assisted Install
 

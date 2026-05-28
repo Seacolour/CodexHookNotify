@@ -4,16 +4,18 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	SMTP    SMTPConfig    `yaml:"smtp"`
-	Mail    MailConfig    `yaml:"mail"`
-	Session SessionConfig `yaml:"session"`
-	Dedup   DedupConfig   `yaml:"dedup"`
-	Log     LogConfig     `yaml:"log"`
+	SMTP       SMTPConfig       `yaml:"smtp"`
+	Mail       MailConfig       `yaml:"mail"`
+	Session    SessionConfig    `yaml:"session"`
+	Attachment AttachmentConfig `yaml:"attachment"`
+	Dedup      DedupConfig      `yaml:"dedup"`
+	Log        LogConfig        `yaml:"log"`
 }
 
 type SMTPConfig struct {
@@ -36,6 +38,13 @@ type SessionConfig struct {
 	TitleLookup    *bool  `yaml:"titleLookup"`
 	IndexPath      string `yaml:"indexPath"`
 	MaxTitleLength int    `yaml:"maxTitleLength"`
+}
+
+type AttachmentConfig struct {
+	Enabled        *bool  `yaml:"enabled"`
+	Mode           string `yaml:"mode"`
+	FilenamePrefix string `yaml:"filenamePrefix"`
+	MaxBytes       int    `yaml:"maxBytes"`
 }
 
 type DedupConfig struct {
@@ -91,6 +100,16 @@ func applyDefaults(cfg *Config) {
 	if cfg.Session.MaxTitleLength == 0 {
 		cfg.Session.MaxTitleLength = 80
 	}
+	if cfg.Attachment.Mode == "" {
+		cfg.Attachment.Mode = "when_truncated"
+	}
+	cfg.Attachment.Mode = strings.ToLower(strings.TrimSpace(cfg.Attachment.Mode))
+	if cfg.Attachment.FilenamePrefix == "" {
+		cfg.Attachment.FilenamePrefix = "codex-reply"
+	}
+	if cfg.Attachment.MaxBytes == 0 {
+		cfg.Attachment.MaxBytes = 2 * 1024 * 1024
+	}
 	if cfg.Dedup.WindowSeconds == 0 {
 		cfg.Dedup.WindowSeconds = 30
 	}
@@ -113,9 +132,35 @@ func (c Config) validate() error {
 	if mode != "starttls" && mode != "tls" {
 		return fmt.Errorf("smtp.mode must be starttls or tls, got %q", mode)
 	}
+	switch c.Attachment.Mode {
+	case "when_truncated", "always", "never":
+	default:
+		return fmt.Errorf("attachment.mode must be when_truncated, always, or never, got %q", c.Attachment.Mode)
+	}
+	if c.Attachment.MaxBytes < 0 {
+		return fmt.Errorf("attachment.maxBytes must be >= 0")
+	}
 	return nil
 }
 
 func (s SessionConfig) TitleLookupEnabled() bool {
 	return s.TitleLookup == nil || *s.TitleLookup
+}
+
+func (a AttachmentConfig) EnabledDefault() bool {
+	return a.Enabled == nil || *a.Enabled
+}
+
+func (a AttachmentConfig) ShouldAttach(wasTruncated bool) bool {
+	if !a.EnabledDefault() {
+		return false
+	}
+	switch a.Mode {
+	case "always":
+		return true
+	case "never":
+		return false
+	default:
+		return wasTruncated
+	}
 }
